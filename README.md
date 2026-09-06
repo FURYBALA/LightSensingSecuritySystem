@@ -123,7 +123,7 @@ either real, citable manufacturer/library SPICE models (BC548, the
 photodiode's diode junction) or explicitly-labeled generic
 approximations where the report gives no part number (the LED, the
 buzzer) -- see the model-by-model table in
-[`docs/circuit-analysis.md`](docs/circuit-analysis.md#spice-model-what-s-real-and-what-s-approximated).
+[`docs/circuit-analysis.md`](docs/circuit-analysis.md#spice-model-whats-real-and-whats-approximated).
 The SPICE current-source sign convention used to model the photodiode's
 photocurrent was verified with a standalone two-line test netlist
 before being trusted in the real circuit, not assumed from memory.

@@ -76,7 +76,7 @@ academic/paid license needed, unlike many vendor PCB/SPICE suites.
 An ideal diode junction (the photodiode's real I-V curve when *not*
 illuminated) in parallel with a current source representing
 photocurrent -- the standard textbook technique. See
-[circuit-analysis.md](circuit-analysis.md#spice-model-what-s-real-and-what-s-approximated).
+[circuit-analysis.md](circuit-analysis.md#spice-model-whats-real-and-whats-approximated).
 The current source's value is swept across a decade range as the
 simulation's independent "light level" variable.
 
@@ -87,7 +87,7 @@ citable models from public SPICE libraries -- neither was invented.
 The LED model is a generic approximation (no LED part number was given
 to verify against), and the buzzer is modeled as a plain resistor
 (explicitly not a real buzzer model). See the table in
-[circuit-analysis.md](circuit-analysis.md#spice-model-what-s-real-and-what-s-approximated)
+[circuit-analysis.md](circuit-analysis.md#spice-model-whats-real-and-whats-approximated)
 for exactly which is which and why.
 
 **How is the simulation actually run and verified, end to end?**
