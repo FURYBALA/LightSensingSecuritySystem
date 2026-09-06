@@ -11,6 +11,7 @@ on:
 jobs:
   simulate:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -25,15 +26,30 @@ jobs:
           Invoke-WebRequest -Uri "https://ltspice.analog.com/download/26.0.2/LTspice64.msi" -OutFile "$env:RUNNER_TEMP\LTspice64.msi"
           Start-Process msiexec.exe -ArgumentList "/i `"$env:RUNNER_TEMP\LTspice64.msi`" /quiet /norestart" -Wait
 
-      - name: Run simulation and check regression
+      - name: DIAGNOSTIC - screenshot LTspice after 30s
         shell: powershell
-        run: powershell -File sim/run.ps1 -Check
+        run: |
+          $exe = "C:\Program Files\ADI\LTspice\LTspice.exe"
+          if (-not (Test-Path $exe)) { $exe = Get-ChildItem "C:\Program Files","C:\Program Files (x86)" -Recurse -Filter LTspice.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
+          Write-Output "Using: $exe"
+          $cir = Join-Path $pwd "sim\light_alarm.cir"
+          $proc = Start-Process -FilePath $exe -ArgumentList "-b","-ascii","`"$cir`"" -PassThru
+          Start-Sleep -Seconds 30
+          Write-Output "Still running: $(-not $proc.HasExited)"
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$pwd\diagnostic-screenshot.png")
+          Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object Name, MainWindowTitle | Format-Table -AutoSize
+          if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          Get-ChildItem "$pwd\sim\*.raw","$pwd\sim\*.log" -ErrorAction SilentlyContinue
 
-      - name: Upload simulation output
+      - name: Upload diagnostic screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: simulation-results
-          path: |
-            sim/light_alarm.raw
-            sim/light_alarm.log
+          name: diagnostic-screenshot
+          path: diagnostic-screenshot.png
