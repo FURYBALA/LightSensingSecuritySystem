@@ -57,7 +57,7 @@ jobs:
           Write-Host "--- Tail of msiexec install log ---"
           Get-Content "$env:RUNNER_TEMP\ltspice_install.log" -Tail 40 -ErrorAction SilentlyContinue
 
-      - name: DIAGNOSTIC - trivial netlist (isolate: batch mode itself, or this circuit specifically?)
+      - name: "DIAGNOSTIC - trivial netlist (is it batch mode itself, or this circuit specifically?)"
         shell: powershell
         timeout-minutes: 2
         run: |
