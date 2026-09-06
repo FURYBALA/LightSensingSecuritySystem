@@ -64,7 +64,7 @@ and component-by-component explanation:
    light-increase* detector -- the opposite condition. Confirmed by
    simulation, not just circuit-theory argument: see
    [verification-log.md](docs/verification-log.md#finding-the-report-describes-two-different-and-contradictory-trigger-conditions).
-2. **This is a breadboard build, not a "fabricated PCB.**" The report
+2. **This is a breadboard build, not a "fabricated PCB."** The report
    captions its photos "fabricated pcb assembly" and describes
    "precise soldering," but the photos show a solderless breadboard
    (MB102). See
@@ -109,7 +109,8 @@ real photocurrent-vs-illuminance data for).
 | Claim | Status |
 |---|---|
 | Circuit is fully off at `Iph=0` (dark) | **Confirmed** -- simulation, `I(LED)` ~1e-20 A |
-| LED/buzzer activation increases monotonically with `Iph` | **Confirmed** -- simulation, full 12-point sweep |
+| LED current and modeled buzzer-branch current increase with `Iph` | **Confirmed** -- simulation, full 12-point sweep |
+| Report's component list (5V) matches its circuit diagram (9V) | **Not supported** -- report's own component list and circuit diagram disagree; this repo follows the diagram (`VCC=9V`) |
 | Report's Introduction (obstruction/beam-break) matches this circuit's actual behavior | **Not supported** -- simulation shows the opposite trigger condition |
 | Report's Background/photos (light-increase) match this circuit's actual behavior | **Confirmed** -- consistent with simulation |
 | "Fabricated PCB" / "precise soldering" as captioned in the report | **Not supported** -- report's own photos show a solderless breadboard (MB102) |

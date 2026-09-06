@@ -79,6 +79,25 @@ reasonable way to prototype a course project), but "fabricated PCB" and
 than what the photos actually show. Worth naming plainly rather than
 repeating the "fabricated PCB" description as if it were verified here.
 
+## Third finding: the report's component list and circuit diagram disagree on supply voltage
+
+The report's own **Components list** (page 2) specifies a **5V DC
+battery**. Its **circuit diagram** (page 3), however, is explicitly
+labeled **"9 V D.C supply."**
+
+**Confirmed by directly re-reading both pages of the source PDF**, not
+assumed: page 2 lists "5V DC battery" under Components; page 3's
+schematic is captioned "9 V D.C supply" at the top of the drawn
+circuit.
+
+This repository follows the **circuit diagram**, not the component
+list, since the diagram is what actually defines the topology being
+reconstructed and simulated -- `sim/light_alarm.cir` therefore models
+`VCC=9V` (`V1 VCC 0 9`). The report itself does not provide enough
+evidence to determine which supply was actually used in the physical
+build; this is recorded here as a discrepancy in the source document,
+not resolved one way or the other.
+
 ## Simulation methodology
 
 `sim/light_alarm.cir` reconstructs the circuit's topology (photodiode,

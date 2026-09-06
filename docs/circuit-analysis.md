@@ -40,13 +40,15 @@ was found and why, see [`verification-log.md`](verification-log.md).
   `V(base)` rises, the transistor conducts more, pulling more current
   through the emitter into the LED/buzzer branch.
 - **LED + 100 ohm resistor + buzzer**: the load. The 100 ohm resistor
-  limits LED current; the buzzer is drawn in parallel, sounding
-  whenever the LED is lit.
+  limits LED current; the buzzer branch is drawn in parallel with the
+  LED, carrying current whenever the LED does (modeled here as a plain
+  resistor, not a real acoustic buzzer -- see the table below).
 
 **The resulting behavior, by construction**: more IR light -> more
 photodiode current -> higher base voltage -> more collector/emitter
-current -> LED brighter, buzzer sounds. Darkness -> no photodiode
-current -> transistor off -> LED off, buzzer silent. See
+current -> LED brighter, buzzer-branch current higher. Darkness -> no
+photodiode current -> transistor off -> LED off, buzzer-branch current
+zero. See
 [verification-log.md](verification-log.md#finding-the-report-describes-two-different-and-contradictory-trigger-conditions)
 for why this matters: it's the opposite of what the report's own
 Introduction claims the system detects.
