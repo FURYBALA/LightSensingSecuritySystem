@@ -57,6 +57,18 @@ jobs:
           Write-Host "--- Tail of msiexec install log ---"
           Get-Content "$env:RUNNER_TEMP\ltspice_install.log" -Tail 40 -ErrorAction SilentlyContinue
 
+      - name: DIAGNOSTIC - trivial netlist (isolate: batch mode itself, or this circuit specifically?)
+        shell: powershell
+        timeout-minutes: 2
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $exe = "$env:LOCALAPPDATA\Programs\ADI\LTspice\LTspice.exe"
+          "V1 1 0 5", "R1 1 0 1k", ".op", ".end" | Set-Content -Path "$env:RUNNER_TEMP\trivial.cir"
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          Start-Process -FilePath $exe -ArgumentList "-b","-ascii","`"$env:RUNNER_TEMP\trivial.cir`"" -Wait -PassThru | Out-Null
+          Write-Host "Trivial netlist finished in $($sw.Elapsed)."
+          Get-Content "$env:RUNNER_TEMP\trivial.raw" -ErrorAction SilentlyContinue
+
       - name: Run simulation and check regression
         shell: powershell
         timeout-minutes: 2
