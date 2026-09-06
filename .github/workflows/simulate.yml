@@ -25,10 +25,18 @@ jobs:
         timeout-minutes: 5
         run: |
           $ErrorActionPreference = 'Stop'
+          # Invoke-WebRequest's default progress-bar rendering is a
+          # well-known cause of drastic slowdowns on non-trivial
+          # downloads in Windows PowerShell 5.1 -- disable it so the
+          # download actually takes seconds, not most of a 5-minute
+          # step budget.
+          $ProgressPreference = 'SilentlyContinue'
+          $sw = [Diagnostics.Stopwatch]::StartNew()
           Invoke-WebRequest -Uri "https://ltspice.analog.com/download/26.0.2/LTspice64.msi" -OutFile "$env:RUNNER_TEMP\LTspice64.msi"
-          Write-Host "Downloaded MSI."
+          Write-Host "Downloaded MSI in $($sw.Elapsed)."
+          $sw.Restart()
           Start-Process msiexec.exe -ArgumentList "/i `"$env:RUNNER_TEMP\LTspice64.msi`" /quiet /norestart /l*v `"$env:RUNNER_TEMP\ltspice_install.log`"" -Wait -PassThru | Out-Null
-          Write-Host "msiexec finished."
+          Write-Host "msiexec finished in $($sw.Elapsed)."
 
       - name: DIAGNOSTIC - locate LTspice.exe (fast, non-recursive only)
         shell: powershell
