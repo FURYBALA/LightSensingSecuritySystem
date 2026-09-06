@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" font-family="Consolas, 'Courier New', monospace" font-size="14">
+  <rect x="0" y="0" width="720" height="520" fill="#ffffff"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#111"/>
+    </marker>
+  </defs>
+  <g stroke="#111" stroke-width="2" fill="none">
+
+    <!-- VCC rail -->
+    <line x1="90" y1="60" x2="620" y2="60"/>
+    <text x="330" y="42" text-anchor="middle" fill="#111" stroke="none" font-weight="bold">VCC (node: VCC)</text>
+
+    <!-- V1 source: rail down to a battery symbol, down to GND rail -->
+    <line x1="90" y1="60" x2="90" y2="150"/>
+    <line x1="70" y1="150" x2="110" y2="150" stroke-width="3"/>
+    <line x1="78" y1="162" x2="102" y2="162" stroke-width="1.5"/>
+    <line x1="90" y1="162" x2="90" y2="420"/>
+    <text x="120" y="160" stroke="none" fill="#111">V1  9V</text>
+    <text x="65" y="140" stroke="none" fill="#111" font-size="12">+</text>
+    <text x="65" y="178" stroke="none" fill="#111" font-size="12">−</text>
+
+    <!-- Photodiode branch: VCC -> cathode -> D_PD -> anode -> BASE node -->
+    <line x1="230" y1="60" x2="230" y2="110"/>
+    <!-- cathode bar (top, at VCC side) -->
+    <line x1="205" y1="110" x2="255" y2="110" stroke-width="3"/>
+    <!-- anode triangle pointing down (conventional current VCC->BASE when illuminated) -->
+    <polygon points="205,110 255,110 230,150" fill="#111"/>
+    <line x1="230" y1="150" x2="230" y2="195"/>
+    <!-- incoming light arrows (photodiode convention) -->
+    <line x1="175" y1="90" x2="200" y2="115" marker-end="url(#arrow)"/>
+    <line x1="190" y1="80" x2="215" y2="105" marker-end="url(#arrow)"/>
+    <text x="255" y="90" stroke="none" fill="#111">D_PD</text>
+    <text x="255" y="132" stroke="none" fill="#111">(reverse-biased;</text>
+    <text x="255" y="148" stroke="none" fill="#111">Iph model here)</text>
+
+    <!-- BASE node -->
+    <circle cx="230" cy="200" r="3.5" fill="#111" stroke="none"/>
+    <text x="238" y="204" stroke="none" fill="#111" font-weight="bold">BASE</text>
+
+    <!-- R1 100k: BASE -> GND -->
+    <rect x="212" y="215" width="36" height="90" rx="3"/>
+    <line x1="230" y1="200" x2="230" y2="215"/>
+    <line x1="230" y1="305" x2="230" y2="420"/>
+    <text x="255" y="265" stroke="none" fill="#111">R1</text>
+    <text x="255" y="281" stroke="none" fill="#111">100k</text>
+
+    <!-- BASE -> transistor base (horizontal) -->
+    <line x1="230" y1="200" x2="330" y2="200"/>
+
+    <!-- Q1 BC548BP transistor -->
+    <circle cx="380" cy="220" r="42"/>
+    <line x1="330" y1="200" x2="365" y2="200"/>
+    <line x1="365" y1="185" x2="365" y2="255" stroke-width="3"/>
+    <line x1="365" y1="197" x2="400" y2="182"/>
+    <line x1="365" y1="243" x2="400" y2="258"/>
+    <!-- emitter arrow (NPN: points away from base) -->
+    <polygon points="393,251 400,258 393,262" fill="#111"/>
+    <text x="335" y="150" stroke="none" fill="#111" font-weight="bold">Q1  BC548BP</text>
+    <text x="335" y="168" stroke="none" fill="#111" font-size="12">(C=VCC, B=BASE, E=EMIT)</text>
+
+    <!-- collector -> VCC rail -->
+    <line x1="400" y1="182" x2="400" y2="60"/>
+
+    <!-- emitter -> EMIT node -->
+    <line x1="400" y1="258" x2="400" y2="300"/>
+    <circle cx="400" cy="300" r="3.5" fill="#111" stroke="none"/>
+    <text x="408" y="304" stroke="none" fill="#111" font-weight="bold">EMIT</text>
+
+    <!-- Branch A: EMIT -> D_LED -> RLED -> GND -->
+    <line x1="400" y1="300" x2="330" y2="300"/>
+    <line x1="330" y1="300" x2="330" y2="330"/>
+    <!-- LED: anode triangle pointing down, cathode bar below -->
+    <polygon points="305,330 355,330 330,370" fill="#111"/>
+    <line x1="305" y1="370" x2="355" y2="370" stroke-width="3"/>
+    <!-- outgoing light arrows (LED convention) -->
+    <line x1="352" y1="340" x2="377" y2="315" marker-end="url(#arrow)"/>
+    <line x1="365" y1="353" x2="390" y2="328" marker-end="url(#arrow)"/>
+    <text x="360" y="322" stroke="none" fill="#111">D_LED</text>
+    <line x1="330" y1="370" x2="330" y2="385"/>
+    <rect x="312" y="385" width="36" height="35" rx="3"/>
+    <line x1="330" y1="420" x2="330" y2="420"/>
+    <text x="352" y="398" stroke="none" fill="#111">RLED</text>
+    <text x="352" y="414" stroke="none" fill="#111">100Ω</text>
+    <line x1="330" y1="420" x2="330" y2="420"/>
+
+    <!-- Branch B: EMIT -> RBUZZ (buzzer, modeled as resistor) -> GND -->
+    <line x1="400" y1="300" x2="480" y2="300"/>
+    <line x1="480" y1="300" x2="480" y2="330"/>
+    <rect x="450" y="330" width="60" height="60" rx="4"/>
+    <text x="463" y="356" stroke="none" fill="#111" font-size="12">BUZZER</text>
+    <text x="463" y="372" stroke="none" fill="#111" font-size="11">(RBUZZ</text>
+    <text x="463" y="386" stroke="none" fill="#111" font-size="11">500Ω equiv.)</text>
+    <line x1="480" y1="390" x2="480" y2="420"/>
+
+    <!-- GND rail -->
+    <line x1="90" y1="420" x2="620" y2="420"/>
+    <line x1="230" y1="420" x2="230" y2="420"/>
+    <g stroke-width="2">
+      <line x1="90" y1="420" x2="90" y2="432"/>
+      <line x1="76" y1="432" x2="104" y2="432"/>
+      <line x1="82" y1="440" x2="98" y2="440"/>
+      <line x1="88" y1="448" x2="92" y2="448"/>
+    </g>
+    <text x="102" y="452" stroke="none" fill="#111" font-weight="bold">GND (node: 0)</text>
+
+  </g>
+  <text x="20" y="500" stroke="none" fill="#444" font-size="12">Reconstructed from sim/light_alarm.cir -- node names (VCC, BASE, EMIT, GND) match the netlist exactly. See docs/circuit-analysis.md.</text>
+</svg>

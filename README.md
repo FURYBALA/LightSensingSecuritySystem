@@ -10,16 +10,43 @@ Engineering, SRM Institute of Science and Technology. The original
 report is at
 [`docs/PCB MINI PROJECT.pdf`](docs/PCB%20MINI%20PROJECT.pdf).
 
-> **This repo doesn't just re-describe the report -- it actually
-> simulates the circuit** (LTspice) to check the report's own claims
-> against the circuit's real, modeled behavior. Doing so confirmed a
-> real inconsistency: the report's Introduction describes an obstruction
-> (beam-break) detector, but the actual circuit -- and the report's own
-> Background section and demo photos -- implement the opposite trigger
-> condition. Full evidence:
-> [`docs/verification-log.md`](docs/verification-log.md).
+This repo doesn't just re-describe the report -- it actually **simulates
+the circuit** (LTspice) to check the report's own claims against the
+circuit's real, modeled behavior.
+
+## Key Finding
+
+| | Trigger condition claimed / found |
+|---|---|
+| **Original report's Introduction** | Light **decreasing** (an obstruction blocking the beam) triggers the alarm -- an obstruction/beam-break detector. |
+| **Actual modeled circuit** (this repo, confirmed by simulation) | Light **increasing** triggers the alarm -- the *opposite* condition, matching a flame/light-increase detector instead. |
+
+The report's own Background section and demo photos agree with the
+circuit's actual behavior, not the Introduction's framing. A person
+blocking the light in this circuit would turn the alarm **off**, not
+trigger it. Confirmed with real simulation data, not just circuit-theory
+argument -- full evidence:
+[`docs/verification-log.md`](docs/verification-log.md#finding-the-report-describes-two-different-and-contradictory-trigger-conditions).
+
+## Original Project vs. My Contribution
+
+This was originally a **team project** submitted by four students for
+21ECC101J. The original circuit design, breadboard build, and report
+([`docs/PCB MINI PROJECT.pdf`](docs/PCB%20MINI%20PROJECT.pdf)) are the
+team's collective work -- this repository does not claim sole authorship
+of the original design or build.
+
+**What this repository adds, specifically performed by B.V. Balanilavan**:
+reconstructing the circuit as a real, citable SPICE simulation,
+verifying the sign conventions and models used rather than assuming
+them, finding and documenting the Key Finding above (with simulated
+evidence), attempting CI and honestly documenting why it doesn't
+currently work rather than hiding or faking it, and writing this repo's
+documentation.
 
 ## Circuit Overview
+
+![Reconstructed circuit schematic, matching sim/light_alarm.cir exactly](docs/schematic/reconstructed-circuit.svg)
 
 Photodiode (reverse-biased) -> 100k bias resistor -> BC548 (as a
 current-amplifying switch) -> LED + 100 ohm resistor + buzzer. More IR
@@ -69,6 +96,28 @@ only once the modeled photocurrent (`Iph`) reaches roughly 100uA, with a
 gradual (not sharp) transition -- this circuit has no hysteresis, so a
 real build could flicker near the threshold rather than switch cleanly.
 
+![I(LED) vs. modeled photocurrent Iph, log x-axis, from the real 12-point sweep](docs/plots/photocurrent-vs-led-current.svg)
+
+The simulated transition region is roughly **10uA-100uA** of modeled
+photocurrent -- this describes the *assumed photocurrent model* used in
+this simulation, not a measured threshold of the real, physical
+photodiode (no specific part number was given in the report to source
+real photocurrent-vs-illuminance data for).
+
+## Verification Matrix
+
+| Claim | Status |
+|---|---|
+| Circuit is fully off at `Iph=0` (dark) | **Confirmed** -- simulation, `I(LED)` ~1e-20 A |
+| LED/buzzer activation increases monotonically with `Iph` | **Confirmed** -- simulation, full 12-point sweep |
+| Report's Introduction (obstruction/beam-break) matches this circuit's actual behavior | **Not supported** -- simulation shows the opposite trigger condition |
+| Report's Background/photos (light-increase) match this circuit's actual behavior | **Confirmed** -- consistent with simulation |
+| "Fabricated PCB" / "precise soldering" as captioned in the report | **Not supported** -- report's own photos show a solderless breadboard (MB102) |
+| Real photodiode's actual photocurrent-vs-illuminance response | **Not verified** -- no part number given; `Iph` is a modeled stand-in range, not measured |
+| Physical breadboard build's real light-level transition threshold | **Not verified** -- no lux-meter measurement was taken against this simulation |
+| Buzzer's real electrical/acoustic behavior | **Not verified** -- modeled as a plain resistor, an explicit simplification |
+| Continuous integration (automated re-simulation on push) | **Not currently supported** -- attempted, root cause not found; see below |
+
 ## Technologies
 
 - **LTspice** (Analog Devices) -- circuit simulation, batch mode
@@ -87,6 +136,8 @@ docs/
   circuit-analysis.md    Topology, SPICE models used, and why
   verification-log.md    The findings, with evidence -- including the CI attempt
   interview-questions.md Interview prep grounded in this project
+  schematic/              Reconstructed circuit schematic (SVG)
+  plots/                  Simulation result plots (SVG)
 ```
 
 ## Requirements
@@ -110,6 +161,21 @@ winget install --id=AnalogDevices.LTspice -e
 powershell -File sim/run.ps1
 ```
 
+Expected output: `Using LTspice: <path>`, then the same 12-row
+`Iph / V(base) / V(emit) / I(LED) / Ic(Q1) / State` table shown in
+[Simulation Results](#simulation-results) above. Add `-Check` to also
+run the regression check and exit non-zero on failure:
+
+```powershell
+powershell -File sim/run.ps1 -Check
+```
+
+Expected output: the same table, followed by `Dark point: ...`,
+`Bright point: ...`, and a final `REGRESSION CHECK: PASS` line (dark
+point off, brightest point clearly on). These are the actual commands
+and output this repo was verified against -- no other invocation has
+been tested.
+
 ## Verification
 
 The simulation table above is real solver output (LTspice batch mode,
@@ -126,29 +192,16 @@ before being trusted in the real circuit, not assumed from memory.
 ## Continuous Integration
 
 **Attempted, and honestly not working -- no CI badge or workflow file
-in this repo.** A GitHub Actions workflow (`windows-latest`) was built
-to install LTspice and re-run this simulation on every push, matching
-this author's other two repos. Across five separate CI runs, real,
-progressively-isolated diagnostics established:
-- The install step and LTspice's actual install path
-  (`%LOCALAPPDATA%\Programs\ADI\LTspice\LTspice.exe`) both work
-  correctly once a real PowerShell download-speed bug
-  (`Invoke-WebRequest`'s default progress-bar rendering, a well-known
-  Windows PowerShell 5.1 issue) was fixed.
-- `sim/run.ps1` correctly locates and launches LTspice.
-- **`LTspice.exe -b -ascii` itself never completes on this runner --
-  confirmed even for a trivial single-resistor `.op` netlist**, ruling
-  out this circuit's specific models/`.step` sweep as the cause.
-
-The root cause (something about LTspice batch mode specifically on
-GitHub's hosted Windows runners) wasn't fully identified, and further
-diagnosis had sharply diminishing returns against real CI cost. Rather
-than leave a permanently-failing badge or keep iterating indefinitely,
-the workflow was removed and this is documented plainly instead. Full
-run-by-run account: [`docs/verification-log.md`](docs/verification-log.md#ci-attempted-and-honestly-not-working).
-**This does not affect the simulation results above** -- those are
-real, reproducible on an actual Windows machine with LTspice installed
-normally, and were re-verified locally after every change in this repo.
+in this repo.** Across five isolated diagnostic runs on GitHub Actions'
+`windows-latest` runner, `LTspice.exe -b` was confirmed to never
+complete -- even for a trivial single-resistor netlist -- for reasons
+not fully identified, after ruling out a slow-download bug and an
+install-path assumption (both fixed/ruled out along the way). Rather
+than keep a permanently-failing badge, the workflow was removed. Full
+run-by-run account:
+[`docs/verification-log.md`](docs/verification-log.md#ci-attempted-and-honestly-not-working).
+This doesn't affect the simulation results above, which are real and
+locally reproducible.
 
 ## Limitations
 
@@ -186,22 +239,6 @@ Realistic, not aspirational:
    comparable local VM), so CI can be re-added for real rather than
    removed.
 
-## My contribution / Team project
-
-This was originally a **team project** submitted by four students for
-21ECC101J. The original circuit design, breadboard build, and report
-([`docs/PCB MINI PROJECT.pdf`](docs/PCB%20MINI%20PROJECT.pdf)) are the
-team's collective work -- this repository does not claim sole
-authorship of the original design or build.
-
-**What this repository adds, specifically performed by B.V. Balanilavan**:
-reconstructing the circuit as a real, citable SPICE simulation,
-verifying the sign conventions and models used rather than assuming
-them, finding and documenting the two inconsistencies above (with
-simulated evidence for the first), attempting CI and honestly
-documenting why it doesn't currently work rather than hiding or
-faking it, and writing this repo's documentation.
-
 ## Resume-ready project description
 
 - Reconstructed a team-built analog security-alarm circuit
@@ -221,24 +258,10 @@ faking it, and writing this repo's documentation.
   fixed; a batch-mode hang, not fixed), and documented the real finding
   instead of leaving a permanently-failing badge in place.
 
-## Placement positioning
+## Related projects
 
-This project demonstrates analog circuit analysis (BJT biasing,
-photodiode operation, load-line/switching behavior), SPICE simulation
-methodology, and the same verification discipline shown in this
-author's other two repos -- applied here to hardware rather than
-software or digital logic:
-
-- **Digital/RTL**: [`CaesarCipher_LFSR_12Bit`](https://github.com/FURYBALA/CaesarCipher_LFSR_12Bit)
-  (Verilog, Icarus Verilog simulation)
-- **Software**: [`LibraryManagement`](https://github.com/FURYBALA/LibraryManagement)
-  (Python/Tkinter/SQLite3, automated testing)
-- **Analog hardware**: this repository (SPICE simulation)
-
-Together, these demonstrate breadth across digital design, software
-engineering, and analog circuits -- all grounded in the same standard:
-verify claims by actually running something, not by assuming a report
-or a first read of a schematic is correct.
+- [`CaesarCipher_LFSR_12Bit`](https://github.com/FURYBALA/CaesarCipher_LFSR_12Bit) -- Verilog/RTL, Icarus Verilog simulation
+- [`LibraryManagement`](https://github.com/FURYBALA/LibraryManagement) -- Python/Tkinter/SQLite3, automated testing
 
 ## Interview Preparation
 
