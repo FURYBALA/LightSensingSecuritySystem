@@ -129,7 +129,7 @@ trust a report's narrative claims (or your own first assumption) --
 check them against something that actually runs, and document exactly
 what was verified versus approximated versus not checked at all. Here
 that meant an actual SPICE simulation instead of a testbench or a
-`pytest` suite, but the standard is the same.
+`unittest` suite, but the standard is the same.
 
 **What would you need to do to make this claim production-grade?**
 Get a real photodiode part number and its actual photocurrent-vs-
