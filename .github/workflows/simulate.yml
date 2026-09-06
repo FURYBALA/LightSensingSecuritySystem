@@ -1,0 +1,39 @@
+name: Simulation
+
+# Installs LTspice on a Windows runner and re-runs the real circuit
+# simulation on every push/PR, checking that the two claims this repo
+# actually makes still hold: the circuit is OFF in the dark and ON in
+# bright (simulated) light.
+on:
+  push:
+  pull_request:
+
+jobs:
+  simulate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install LTspice
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://ltspice.analog.com/download/26.0.2/LTspice64.msi" -OutFile "$env:RUNNER_TEMP\LTspice64.msi"
+          Start-Process msiexec.exe -ArgumentList "/i `"$env:RUNNER_TEMP\LTspice64.msi`" /quiet /norestart" -Wait
+
+      - name: Run simulation and check regression
+        shell: powershell
+        run: powershell -File sim/run.ps1 -Check
+
+      - name: Upload simulation output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-results
+          path: |
+            sim/light_alarm.raw
+            sim/light_alarm.log

@@ -1,0 +1,75 @@
+* Light Sensing Security System (IR Photodiode Based Circuit)
+* Reconstruction of the schematic in docs/PCB MINI PROJECT.pdf (page 3).
+*
+* Topology (as drawn in the report):
+*   9V supply -> node VCC
+*   Photodiode: cathode at VCC, anode at BASE (reverse-biased; its
+*     photocurrent flows from VCC into BASE as light increases)
+*   R1 (100k): BASE to GND (develops a voltage from the photocurrent)
+*   Q1 (BC548): Collector = VCC, Base = BASE, Emitter = EMIT
+*   LED + Rled (100 ohm): EMIT -> LED_C -> GND
+*   Buzzer: modeled as an equivalent linear resistor from EMIT to GND
+*     (a real piezo/magnetic buzzer isn't representable as a simple
+*     SPICE primitive, and the report gives no electrical spec for it --
+*     this is a documented simplification, not a claim about the real
+*     buzzer's actual impedance).
+*
+* Photocurrent (Iph) is swept as a stand-in for "IR light level" --
+* SPICE has no native concept of illumination, so this is the standard
+* way to model a photodiode: an ideal diode junction in parallel with a
+* light-dependent current source. Iph=0 represents dark; increasing
+* Iph represents increasing IR light on the photodiode.
+
+.param Iph=0
+
+V1   VCC 0 9
+I_PH VCC BASE {Iph}
+D_PD BASE VCC D1N4148
+R1   BASE 0 100k
+
+Q1   VCC BASE EMIT BC548BP
+
+D_LED EMIT LED_C LED_GENERIC
+RLED  LED_C 0 100
+RBUZZ EMIT 0 500
+
+* --- Photodiode junction: generic small-signal silicon diode ---
+* Real, citable model (NXP Semiconductors 1N4148, via a public SPICE
+* library on GitHub: neiser/spice-padiwa-amps/1N4148.lib). The report
+* doesn't name a specific photodiode part number, so this stands in for
+* "a generic silicon diode junction" -- it is NOT a manufacturer
+* photodiode model; only the junction I-V curve is reused, and the
+* actual "photo" behavior comes entirely from the I_PH current source
+* above, not from this model.
+.MODEL D1N4148 D
++ IS=4.352E-9 N=1.906 BV=110 IBV=0.0001 RS=0.6458
++ CJO=7.048E-13 VJ=0.869 M=0.03 FC=0.5 TT=3.48E-9
+
+* --- Q1: BC548 transistor ---
+* Real, citable model: "ZETEX BC548BP Spice model, Last revision 4/90"
+* (via a public SPICE library on GitHub: juanbravo/LTSpiceIUT,
+* Lib/IUT/sub/Zetex.lib). BC548BP is a specific manufacturer (Zetex)
+* variant/package of the BC548 family; used here because a verified,
+* citable model for a generic/unbranded BC548 was not found.
+.MODEL BC548BP NPN
++ IS=1.8E-14 ISE=5.0E-14 NF=.9955 NE=1.46 BF=400
++ BR=35.5 IKF=.14 IKR=.03 ISC=1.72E-13 NC=1.27 NR=1.005 RB=.56 RE=.6
++ RC=.25 VAF=80 VAR=12.5 CJE=13E-12 TF=.64E-9 CJC=4E-12 TR=50.72E-9
++ VJC=.54 MJC=.33
+
+* --- D_LED: generic red LED ---
+* Approximate, NOT independently verified against a specific
+* manufacturer datasheet (the report doesn't specify an LED part
+* number either). Parameterized to give a realistic ~1.7-1.8V forward
+* voltage at a few mA -- the point of including a dedicated LED model
+* at all (rather than reusing the 1N4148) is that a real LED's forward
+* voltage (~1.8-2V) is much higher than a signal diode's (~0.6-0.7V),
+* and that difference matters for checking whether this circuit
+* actually has enough voltage headroom to light the LED.
+.MODEL LED_GENERIC D
++ IS=93.2P RS=42M N=3.73 BV=4 IBV=10U CJO=2.97P VJ=.75 M=.333 TT=4.32U
+
+.step param Iph list 0 1n 10n 100n 300n 1u 3u 10u 30u 100u 300u 1m
+.op
+
+.end
