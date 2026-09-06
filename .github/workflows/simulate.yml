@@ -22,34 +22,43 @@ jobs:
 
       - name: Install LTspice
         shell: powershell
+        timeout-minutes: 5
         run: |
+          $ErrorActionPreference = 'Stop'
           Invoke-WebRequest -Uri "https://ltspice.analog.com/download/26.0.2/LTspice64.msi" -OutFile "$env:RUNNER_TEMP\LTspice64.msi"
-          Start-Process msiexec.exe -ArgumentList "/i `"$env:RUNNER_TEMP\LTspice64.msi`" /quiet /norestart" -Wait
+          Write-Host "Downloaded MSI."
+          Start-Process msiexec.exe -ArgumentList "/i `"$env:RUNNER_TEMP\LTspice64.msi`" /quiet /norestart /l*v `"$env:RUNNER_TEMP\ltspice_install.log`"" -Wait -PassThru | Out-Null
+          Write-Host "msiexec finished."
 
-      - name: DIAGNOSTIC - screenshot LTspice after 30s
+      - name: DIAGNOSTIC - locate LTspice.exe (fast, non-recursive only)
         shell: powershell
+        timeout-minutes: 2
         run: |
-          $exe = "C:\Program Files\ADI\LTspice\LTspice.exe"
-          if (-not (Test-Path $exe)) { $exe = Get-ChildItem "C:\Program Files","C:\Program Files (x86)" -Recurse -Filter LTspice.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
-          Write-Output "Using: $exe"
-          $cir = Join-Path $pwd "sim\light_alarm.cir"
-          $proc = Start-Process -FilePath $exe -ArgumentList "-b","-ascii","`"$cir`"" -PassThru
-          Start-Sleep -Seconds 30
-          Write-Output "Still running: $(-not $proc.HasExited)"
-          Add-Type -AssemblyName System.Windows.Forms
-          Add-Type -AssemblyName System.Drawing
-          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
-          $g = [System.Drawing.Graphics]::FromImage($bmp)
-          $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-          $bmp.Save("$pwd\diagnostic-screenshot.png")
-          Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object Name, MainWindowTitle | Format-Table -AutoSize
-          if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
-          Get-ChildItem "$pwd\sim\*.raw","$pwd\sim\*.log" -ErrorAction SilentlyContinue
+          $ErrorActionPreference = 'Continue'
+          Write-Host "--- Top-level Program Files ---"
+          Get-ChildItem "C:\Program Files" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          Write-Host "--- Top-level Program Files (x86) ---"
+          Get-ChildItem "C:\Program Files (x86)" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          Write-Host "--- Candidate paths ---"
+          @(
+            "C:\Program Files\ADI\LTspice\LTspice.exe",
+            "C:\Program Files (x86)\ADI\LTspice\LTspice.exe",
+            "C:\Program Files\LTC\LTspiceXVII\XVIIx64.exe",
+            "$env:LOCALAPPDATA\Programs\ADI\LTspice\LTspice.exe"
+          ) | ForEach-Object { Write-Host "$_ -> $(Test-Path $_)" }
+          Write-Host "--- Tail of msiexec install log ---"
+          Get-Content "$env:RUNNER_TEMP\ltspice_install.log" -Tail 40 -ErrorAction SilentlyContinue
 
-      - name: Upload diagnostic screenshot
+      - name: Run simulation and check regression
+        shell: powershell
+        timeout-minutes: 2
+        run: powershell -File sim/run.ps1 -Check
+
+      - name: Upload simulation output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostic-screenshot
-          path: diagnostic-screenshot.png
+          name: simulation-results
+          path: |
+            sim/light_alarm.raw
+            sim/light_alarm.log
