@@ -140,6 +140,77 @@ point sweep, no randomness or transient behavior involved).
   operating currents (order 10-70mA) once `Iph` reaches ~100uA or
   higher; at 10uA, `I(LED)` is still ~9 orders of magnitude below that.
 
+## CI: attempted, and honestly not working
+
+A GitHub Actions workflow (`windows-latest`) was built to install
+LTspice and re-run `sim/light_alarm.cir` on every push, matching the
+CI approach used on this author's other two repos. It does not
+currently work, and rather than leave a permanently-red badge or a
+misleading green one, the workflow file was removed and the real,
+run-by-run diagnostic story is recorded here instead.
+
+**Run 1** (initial workflow): "Install LTspice" step succeeded (~5
+minutes -- slow, but not yet understood as a bug). The next step,
+running the actual simulation via `sim/run.ps1`, then produced **zero
+log output for 20+ minutes** before the job's overall time limit was
+manually cancelled.
+
+**Run 2** (diagnostic: launch LTspice non-blocking, sleep 30s,
+screenshot the desktop, kill it): also produced zero log output and hit
+its own 10-minute job timeout -- worse, the screenshot file was never
+even created, meaning the step never reached that code at all.
+Root cause found by inspection, not another guess: the diagnostic
+script's *own* fallback path-resolution used
+`Get-ChildItem -Recurse` across the entire `C:\Program Files` and
+`C:\Program Files (x86)` trees -- a genuinely expensive scan under
+real-time AV scanning on a loaded CI runner. This was a real bug in the
+diagnostic itself, not evidence about LTspice.
+
+**Run 3** (rewritten diagnostic: fast, non-recursive path checks only,
+plus per-step `timeout-minutes` so no single command could hide inside
+a silent step again): the **install** step itself now hit its own new
+5-minute timeout, with -- again -- zero output the entire time.
+
+**Run 4** (added `$ProgressPreference = 'SilentlyContinue'` before
+`Invoke-WebRequest`, a well-documented fix for a real Windows
+PowerShell 5.1 bug where the default progress-bar rendering can turn a
+seconds-long download into a many-minutes one): install and the
+non-recursive path diagnostic both succeeded quickly. The diagnostic
+output confirmed LTspice actually installs to
+`C:\Users\runneradmin\AppData\Local\Programs\ADI\LTspice\LTspice.exe`
+(a per-user path, not `Program Files`) and that `sim/run.ps1` already
+finds it correctly (`Using LTspice: ...` printed fine). The very next
+line -- the real `LTspice.exe -b -ascii` call on `light_alarm.cir` --
+then hung for the full 2-minute step timeout with no further output.
+This is the first run where the actual LTspice invocation, and nothing
+else, was cleanly isolated as the thing that doesn't complete.
+
+**Run 5** (added one more test: run the exact same `-b -ascii`
+invocation against a trivial two-component netlist -- `V1`, `R1`,
+`.op` -- to check whether the hang was specific to this circuit's
+custom SPICE models or `.step` sweep): **the trivial netlist hung too**,
+for the full 2-minute timeout. This rules out the circuit's own
+complexity as the cause -- LTspice's batch mode itself does not
+complete on this runner, for any netlist tried.
+
+**Conclusion**: `LTspice.exe -b` (with or without `-ascii`) does not
+run to completion on GitHub Actions' `windows-latest` hosted runners,
+for reasons not fully identified. Ruled out, with real evidence: a slow
+download (fixed, unrelated), an incorrect install path (never actually
+wrong), and this specific circuit's models/sweep complexity (a trivial
+netlist hangs identically). Not yet tested: whether this is specific to
+GitHub's runner image, a missing runtime dependency, or something about
+how LTspice's Qt-based UI layer behaves without a fully "warmed up"
+interactive session on a brand-new user profile. Further isolation
+(e.g. Process Monitor on a comparable local VM) was judged not worth
+the additional CI cost for this project's scope -- documented honestly
+here instead of pursued indefinitely.
+
+**This does not affect the simulation results in this document or the
+README** -- all of them were run locally, on a real Windows machine
+with a normal LTspice install, and were re-verified after every change
+made in this repo.
+
 ## What this does and doesn't prove
 
 **Proves**: the circuit's topology, as drawn in the report and

@@ -1,7 +1,5 @@
 # Light Sensing Security System (IR Photodiode Circuit)
 
-[![Simulation](https://github.com/FURYBALA/LightSensingSecuritySystem/actions/workflows/simulate.yml/badge.svg)](https://github.com/FURYBALA/LightSensingSecuritySystem/actions/workflows/simulate.yml)
-
 ## Project Overview
 
 A simple analog circuit -- an IR photodiode biasing a BC548 transistor
@@ -76,8 +74,6 @@ real build could flicker near the threshold rather than switch cleanly.
 - **LTspice** (Analog Devices) -- circuit simulation, batch mode
 - **Python 3** (standard library only) -- parses simulation output
 - **PowerShell** -- drives the simulation + parser
-- **GitHub Actions** (`windows-latest`) -- CI, installing LTspice
-  silently and re-running the simulation on every push
 
 ## Repository Structure
 
@@ -89,17 +85,16 @@ sim/
 docs/
   PCB MINI PROJECT.pdf   Original team project report
   circuit-analysis.md    Topology, SPICE models used, and why
-  verification-log.md    The two findings, with evidence
+  verification-log.md    The findings, with evidence -- including the CI attempt
   interview-questions.md Interview prep grounded in this project
-.github/workflows/simulate.yml   CI: installs LTspice, runs the simulation on every push/PR
 ```
 
 ## Requirements
 
 [LTspice](https://www.analog.com/en/design-center/design-tools-and-calculators/ltspice-simulator.html)
 (free, Windows/macOS) and Python 3 (standard library only). Verified
-against LTspice 26.0.2 on Windows, and via CI on GitHub Actions'
-`windows-latest` runner.
+against LTspice 26.0.2 on Windows. **Not verified in CI** -- see
+[Continuous Integration](#continuous-integration) below for why.
 
 ## Installation
 
@@ -130,9 +125,30 @@ before being trusted in the real circuit, not assumed from memory.
 
 ## Continuous Integration
 
-[`.github/workflows/simulate.yml`](.github/workflows/simulate.yml)
-installs LTspice silently on a Windows GitHub Actions runner and
-re-runs the exact same simulation on every push/PR.
+**Attempted, and honestly not working -- no CI badge or workflow file
+in this repo.** A GitHub Actions workflow (`windows-latest`) was built
+to install LTspice and re-run this simulation on every push, matching
+this author's other two repos. Across five separate CI runs, real,
+progressively-isolated diagnostics established:
+- The install step and LTspice's actual install path
+  (`%LOCALAPPDATA%\Programs\ADI\LTspice\LTspice.exe`) both work
+  correctly once a real PowerShell download-speed bug
+  (`Invoke-WebRequest`'s default progress-bar rendering, a well-known
+  Windows PowerShell 5.1 issue) was fixed.
+- `sim/run.ps1` correctly locates and launches LTspice.
+- **`LTspice.exe -b -ascii` itself never completes on this runner --
+  confirmed even for a trivial single-resistor `.op` netlist**, ruling
+  out this circuit's specific models/`.step` sweep as the cause.
+
+The root cause (something about LTspice batch mode specifically on
+GitHub's hosted Windows runners) wasn't fully identified, and further
+diagnosis had sharply diminishing returns against real CI cost. Rather
+than leave a permanently-failing badge or keep iterating indefinitely,
+the workflow was removed and this is documented plainly instead. Full
+run-by-run account: [`docs/verification-log.md`](docs/verification-log.md#ci-attempted-and-honestly-not-working).
+**This does not affect the simulation results above** -- those are
+real, reproducible on an actual Windows machine with LTspice installed
+normally, and were re-verified locally after every change in this repo.
 
 ## Limitations
 
@@ -165,6 +181,10 @@ Realistic, not aspirational:
    the report's Introduction), redesign the trigger condition (e.g.
    invert the sense, or add a comparator referenced to a "beam present"
    baseline) rather than reusing this flame-detection-style topology.
+4. Actually root-cause why `LTspice.exe -b` doesn't complete on GitHub
+   Actions' Windows runners (e.g. by testing with Process Monitor on a
+   comparable local VM), so CI can be re-added for real rather than
+   removed.
 
 ## My contribution / Team project
 
@@ -178,8 +198,9 @@ authorship of the original design or build.
 reconstructing the circuit as a real, citable SPICE simulation,
 verifying the sign conventions and models used rather than assuming
 them, finding and documenting the two inconsistencies above (with
-simulated evidence for the first), setting up CI to re-run the
-simulation on every push, and writing this repo's documentation.
+simulated evidence for the first), attempting CI and honestly
+documenting why it doesn't currently work rather than hiding or
+faking it, and writing this repo's documentation.
 
 ## Resume-ready project description
 
@@ -195,8 +216,10 @@ simulation on every push, and writing this repo's documentation.
   12-point photocurrent sweep, not just circuit-theory argument.
 - Verified the SPICE current-source sign convention empirically with a
   standalone test netlist before trusting it in the real circuit model.
-- Set up GitHub Actions CI that installs LTspice on a Windows runner
-  and re-runs the simulation on every push.
+- Attempted GitHub Actions CI, isolated the failure through five
+  progressively-targeted diagnostic runs (a real download-speed bug,
+  fixed; a batch-mode hang, not fixed), and documented the real finding
+  instead of leaving a permanently-failing badge in place.
 
 ## Placement positioning
 

@@ -97,6 +97,22 @@ for exactly which is which and why.
 nothing here is a hand-typed "expected" result; it's real solver
 output, re-run and re-captured for this documentation.
 
+**Does this project have CI? If not, why not?**
+No -- attempted and honestly removed after real diagnostic work, not
+skipped. Across five isolated CI runs on GitHub Actions'
+`windows-latest` runner: a real download-speed bug was found and fixed
+(`Invoke-WebRequest`'s default progress bar rendering, a known Windows
+PowerShell 5.1 issue), an incorrect assumption about LTspice's install
+path was ruled out (it actually installs per-user, under
+`%LOCALAPPDATA%`, not `Program Files`, but `sim/run.ps1` already
+handles that correctly), and the circuit's own complexity was ruled out
+by testing a trivial two-component netlist. What remains, unexplained:
+`LTspice.exe -b` simply does not complete on that runner, for any
+netlist. Rather than leave a permanently-failing badge or keep
+iterating with diminishing returns, this was documented plainly. Full
+run-by-run account:
+[verification-log.md](verification-log.md#ci-attempted-and-honestly-not-working).
+
 **How did you make sure you had the SPICE current-source sign convention right?**
 Tested it directly with a two-line netlist before trusting it in the
 real circuit: `I1 1 0 1m` with `R1 1 0 1k` gives `V(1) = -1V` (current
